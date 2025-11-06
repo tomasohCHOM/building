@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <vector>
@@ -70,7 +71,7 @@ public:
 };
 
 /// NumberExprAST - Expression class for numeric literal like "1.0"
-class NumberExprAST: ExprAST {
+class NumberExprAST: public ExprAST {
   double Val;
 
 public:
@@ -96,7 +97,7 @@ public:
 };
 
 // CallExprAST - Expression class for function calls
-class CallExprAST {
+class CallExprAST : public ExprAST {
   std::string Callee;
   std::vector<std::unique_ptr<ExprAST>> Args;
 
@@ -105,3 +106,104 @@ public:
     : Callee(Callee), Args(std::move(Args)) {}
 };
 
+/// PrototypeAST - This class represents the "prototype" for a function,
+// which captures its name, and its argument names (thus implicitly the number
+// of arguments the function takes).
+class PrototypeAST {
+  std::string Name;
+  std::vector<std::string> Args;
+
+public:
+  PrototypeAST(const std::string &Name, std::vector<std::string> Args)
+    : Name(Name), Args(std::move(Args)) {}
+
+  const std::string &getName() const { return Name; }
+};
+
+// FunctionAST - This class represents a function definition itself
+class FunctionAST {
+  std::unique_ptr<PrototypeAST> Proto;
+  std::unique_ptr<ExprAST> Body;
+
+public:
+  FunctionAST(std::unique_ptr<PrototypeAST> Proto,
+              std::unique_ptr<ExprAST> Body)
+    : Proto(std::move(Proto)), Body(std::move(Body)) {}
+};
+
+// CurTok/getNextToken - Provide a simple token buffer.  CurTok is the current
+// token the parser is looking at.  getNextToken reads another token from the
+// lexer and updates CurTok with its results.
+static int CurTok;
+static int getNextToken() {
+  return CurTok = gettok();
+}
+
+// LogError* - These are little helper functions for error handling.
+std::unique_ptr<ExprAST> LogError(const char *Str) {
+  fprintf(stderr, "Error: %s\n", Str);
+  return nullptr;
+}
+
+std::unique_ptr<PrototypeAST> LogErrorP(const char *Str) {
+  LogError(Str);
+  return nullptr;
+}
+
+std::unique_ptr<ExprAST> ParseExpression();
+
+// numberexpr ::= number
+static std::unique_ptr<ExprAST> ParseNumberExpr() {
+  auto Result = std::make_unique<NumberExprAST>(NumVal);
+  getNextToken();
+  return std::move(Result);
+}
+
+// parenexpr ::= '(' expression ')'
+static std::unique_ptr<ExprAST> ParseParenExpr() {
+  getNextToken(); // eat (.
+  auto V = ParseExpression();
+  if (!V)
+    return nullptr;
+
+  if (CurTok != ')')
+    return LogError("expected ')'");
+  getNextToken(); // eat ).
+  return V;
+}
+
+// identifierexpr
+//   ::= identifier
+//   ::= identifier '(' expression* ')'
+static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
+  std::string IdName = IdentifierStr;
+
+  getNextToken();  // eat identifier.
+
+  if (CurTok != '(') // Simple variable ref.
+    return std::make_unique<VariableExprAST>(IdName);
+
+  // Call.
+  getNextToken();  // eat (
+  std::vector<std::unique_ptr<ExprAST>> Args;
+  if (CurTok != ')') {
+    while (true) {
+      if (auto Arg = ParseExpression())
+        Args.push_back(std::move(Arg));
+      else
+        return nullptr;
+
+      if (CurTok == ')')
+        break;
+
+      if (CurTok != ',')
+        return LogError("Expected ')' or ',' in argument list");
+      getNextToken();
+    }
+  }
+
+  // Eat the ')'.
+  getNextToken();
+
+  return std::make_unique<CallExprAST>(IdName, std::move(Args));
+}
