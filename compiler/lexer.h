@@ -19,3 +19,4 @@ private:
   std::string IdentifierStr; // Filled in if tok_identifier
   double NumVal; // Filled in if tok_number
 };
+

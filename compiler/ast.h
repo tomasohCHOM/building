@@ -26,7 +26,7 @@ public:
 };
 
 // BinaryExprAST - Expression class for a binary operator
-class BinaryExprAST {
+class BinaryExprAST : public ExprAST {
   char Op;
   std::unique_ptr<ExprAST> LHS, RHS;
 
