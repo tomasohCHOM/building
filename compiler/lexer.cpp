@@ -1,6 +1,8 @@
 #include "lexer.h"
 #include <cstdio>
 
+Lexer::Lexer() : LastChar(' ') {}
+
 int Lexer::gettok() {
   static int LastChar = ' ';
 

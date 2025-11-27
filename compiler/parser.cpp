@@ -3,6 +3,13 @@
 #include <cstdio>
 #include <map>
 
+Parser::Parser(Lexer &lexer)
+  : Lex(lexer), CurTok(lexer.getNextToken()) {}
+
+int Parser::getNextToken() {
+    return CurTok = Lex.getNextToken();
+}
+
 // LogError* - These are little helper functions for error handling.
 std::unique_ptr<ExprAST> Parser::LogError(const char *Str) {
   fprintf(stderr, "Error: %s\n", Str);
