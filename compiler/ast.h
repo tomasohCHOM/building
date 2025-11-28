@@ -1,4 +1,6 @@
-#pragma once
+#ifndef AST_H
+#define AST_H
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -25,7 +27,7 @@ public:
   VariableExprAST(const std::string &Name) : Name(Name) {}
 };
 
-// BinaryExprAST - Expression class for a binary operator
+/// BinaryExprAST - Expression class for a binary operator
 class BinaryExprAST : public ExprAST {
   char Op;
   std::unique_ptr<ExprAST> LHS, RHS;
@@ -35,7 +37,7 @@ public:
     : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
 };
 
-// CallExprAST - Expression class for function calls
+/// CallExprAST - Expression class for function calls
 class CallExprAST : public ExprAST {
   std::string Callee;
   std::vector<std::unique_ptr<ExprAST>> Args;
@@ -46,8 +48,8 @@ public:
 };
 
 /// PrototypeAST - This class represents the "prototype" for a function,
-// which captures its name, and its argument names (thus implicitly the number
-// of arguments the function takes).
+/// which captures its name, and its argument names (thus implicitly the number
+/// of arguments the function takes).
 class PrototypeAST {
   std::string Name;
   std::vector<std::string> Args;
@@ -59,7 +61,7 @@ public:
   const std::string &getName() const { return Name; }
 };
 
-// FunctionAST - This class represents a function definition itself
+/// FunctionAST - This class represents a function definition itself
 class FunctionAST {
   std::unique_ptr<PrototypeAST> Proto;
   std::unique_ptr<ExprAST> Body;
@@ -69,4 +71,6 @@ public:
               std::unique_ptr<ExprAST> Body)
     : Proto(std::move(Proto)), Body(std::move(Body)) {}
 };
+
+#endif // AST_H
 

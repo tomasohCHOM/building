@@ -1,18 +1,22 @@
-#include "lexer.h"
+#include <cctype>
 #include <cstdio>
+#include <cstdlib>
+#include "token.h"
+#include "lexer.h"
 
-Lexer::Lexer() : LastChar(' ') {}
+std::string IdentifierStr; // Filled in if tok_identifier
+double NumVal; // Filled in if tok_number
 
-int Lexer::gettok() {
+int gettok() {
   static int LastChar = ' ';
 
   // Skip any whitespace.
   while (std::isspace(LastChar))
     LastChar = getchar();
 
-  if (isalpha(LastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
+  if (std::isalpha(LastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
     IdentifierStr = LastChar;
-    while (isalnum((LastChar = getchar())))
+    while (std::isalnum((LastChar = std::getchar())))
       IdentifierStr += LastChar;
     if (IdentifierStr == "def")
       return tok_def;
@@ -21,19 +25,19 @@ int Lexer::gettok() {
     return tok_identifier;
   }
 
-  if (isdigit(LastChar) || LastChar == '.') { // Number: [0-9.]+
+  if (std::isdigit(LastChar) || LastChar == '.') { // Number: [0-9.]+
     std::string NumStr;
     do {
       NumStr += LastChar;
       LastChar = getchar();
-    } while (isdigit(LastChar) || LastChar == '.');
-    NumVal = strtod(NumStr.c_str(), 0);
+    } while (std::isdigit(LastChar) || LastChar == '.');
+    NumVal = std::strtod(NumStr.c_str(), 0);
     return tok_number;
   }
   if (LastChar == '#') {
     // Comment until end of line
     do
-      LastChar = getchar();
+      LastChar = std::getchar();
     while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
     if (LastChar != EOF)
@@ -44,11 +48,7 @@ int Lexer::gettok() {
     return tok_eof;
   
   int ThisChar = LastChar;
-  LastChar = getchar();
+  LastChar = std::getchar();
   return ThisChar;
-}
-
-int Lexer::getNextToken() {
-  return gettok();
 }
 

@@ -1,35 +1,31 @@
-#include "lexer.h"
 #include "parser.h"
-#include <iostream>
-
-Lexer lexer;
-Parser parser(lexer);
+#include "token.h"
 
 static void HandleDefinition() {
-  if (parser.ParseDefinition()) {
+  if (ParseDefinition()) {
     fprintf(stderr, "Parsed a function definition.\n");
   } else {
     // Skip token for error recovery.
-    lexer.getNextToken();
+    getNextToken();
   }
 }
 
 static void HandleExtern() {
-  if (parser.ParseExtern()) {
+  if (ParseExtern()) {
     fprintf(stderr, "Parsed an extern\n");
   } else {
     // Skip token for error recovery.
-    lexer.getNextToken();
+    getNextToken();
   }
 }
 
 static void HandleTopLevelExpression() {
   // Evaluate a top-level expression into an anonymous function.
-  if (parser.ParseTopLevelExpr()) {
+  if (ParseTopLevelExpr()) {
     fprintf(stderr, "Parsed a top-level expr\n");
   } else {
     // Skip token for error recovery.
-    lexer.getNextToken();
+    getNextToken();
   }
 }
 
@@ -37,11 +33,11 @@ static void HandleTopLevelExpression() {
 static void MainLoop() {
   while (true) {
     fprintf(stderr, "ready> ");
-    switch (parser.CurTok) {
+    switch (CurTok) {
     case tok_eof:
       return;
     case ';': // ignore top-level semicolons.
-      lexer.getNextToken();
+      getNextToken();
       break;
     case tok_def:
       HandleDefinition();
@@ -57,14 +53,20 @@ static void MainLoop() {
 }
 
 int main() {
-  Lexer lexer;
-  Parser parser(lexer);
+  // Install standard binary operators.
+  // 1 is lowest precedence.
+  BinopPrecedence['<'] = 10;
+  BinopPrecedence['+'] = 20;
+  BinopPrecedence['-'] = 20;
+  BinopPrecedence['*'] = 40; // highest.
 
-  std::cout << "ready> ";
-  while (true) {
-    int tok = lexer.getNextToken();
-    if (tok == tok_eof) break;
-    std::cout << "Token: " << tok << std::endl;
-  }
+  // Prime the first token.
+  fprintf(stderr, "ready> ");
+  getNextToken();
+
+  // Run the main "interpreter loop" now.
+  MainLoop();
+
+  return 0;
 }
 
