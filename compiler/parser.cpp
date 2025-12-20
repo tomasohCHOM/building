@@ -90,14 +90,14 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr() {
 ///   ::= parenexpr
 std::unique_ptr<ExprAST> ParsePrimary() {
   switch (CurTok) {
-    default:
-      return LogError("unknown token when expecting an expression");
-    case tok_identifier:
-      return ParseIdentifierExpr();
-    case tok_number:
-      return ParseNumberExpr();
-    case '(':
-      return ParseParenExpr();
+  default:
+    return LogError("unknown token when expecting an expression");
+  case tok_identifier:
+    return ParseIdentifierExpr();
+  case tok_number:
+    return ParseNumberExpr();
+  case '(':
+    return ParseParenExpr();
   }
 }
 
@@ -134,7 +134,7 @@ std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
 
     // Merge LHS/RHS.
     LHS =
-      std::make_unique<BinaryExprAST>(BinOp, std::move(LHS), std::move(RHS));
+        std::make_unique<BinaryExprAST>(BinOp, std::move(LHS), std::move(RHS));
   }
 }
 
@@ -201,4 +201,3 @@ std::unique_ptr<PrototypeAST> ParseExtern() {
   getNextToken(); // eat extern.
   return ParsePrototype();
 }
-

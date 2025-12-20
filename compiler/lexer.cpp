@@ -1,11 +1,11 @@
+#include "lexer.h"
+#include "token.h"
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
-#include "token.h"
-#include "lexer.h"
 
 std::string IdentifierStr; // Filled in if tok_identifier
-double NumVal; // Filled in if tok_number
+double NumVal;             // Filled in if tok_number
 
 int gettok() {
   static int LastChar = ' ';
@@ -46,9 +46,8 @@ int gettok() {
 
   if (LastChar == EOF)
     return tok_eof;
-  
+
   int ThisChar = LastChar;
   LastChar = std::getchar();
   return ThisChar;
 }
-

@@ -1,6 +1,7 @@
 #ifndef AST_H
 #define AST_H
 
+#include "llvm/IR/Value.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -9,14 +10,18 @@
 class ExprAST {
 public:
   virtual ~ExprAST() = default;
+
+  virtual llvm::Value *codegen() = 0;
 };
 
 /// NumberExprAST - Expression class for numeric literal like "1.0"
-class NumberExprAST: public ExprAST {
+class NumberExprAST : public ExprAST {
   double Val;
 
 public:
   NumberExprAST(double Val) : Val(Val) {}
+
+  llvm::Value *codegen() override;
 };
 
 /// VariableExprAST - Expression class for referencing a variable, like "a"
@@ -25,6 +30,8 @@ class VariableExprAST : public ExprAST {
 
 public:
   VariableExprAST(const std::string &Name) : Name(Name) {}
+
+  llvm::Value *codegen() override;
 };
 
 /// BinaryExprAST - Expression class for a binary operator
@@ -33,8 +40,11 @@ class BinaryExprAST : public ExprAST {
   std::unique_ptr<ExprAST> LHS, RHS;
 
 public:
-  BinaryExprAST(char Op, std::unique_ptr<ExprAST> LHS, std::unique_ptr<ExprAST> RHS)
-    : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+  BinaryExprAST(char Op, std::unique_ptr<ExprAST> LHS,
+                std::unique_ptr<ExprAST> RHS)
+      : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+
+  llvm::Value *codegen() override;
 };
 
 /// CallExprAST - Expression class for function calls
@@ -43,8 +53,11 @@ class CallExprAST : public ExprAST {
   std::vector<std::unique_ptr<ExprAST>> Args;
 
 public:
-  CallExprAST(const std::string &Callee, std::vector<std::unique_ptr<ExprAST>> Args)
-    : Callee(Callee), Args(std::move(Args)) {}
+  CallExprAST(const std::string &Callee,
+              std::vector<std::unique_ptr<ExprAST>> Args)
+      : Callee(Callee), Args(std::move(Args)) {}
+
+  llvm::Value *codegen() override;
 };
 
 /// PrototypeAST - This class represents the "prototype" for a function,
@@ -56,8 +69,9 @@ class PrototypeAST {
 
 public:
   PrototypeAST(const std::string &Name, std::vector<std::string> Args)
-    : Name(Name), Args(std::move(Args)) {}
+      : Name(Name), Args(std::move(Args)) {}
 
+  llvm::Function *codegen();
   const std::string &getName() const { return Name; }
 };
 
@@ -69,8 +83,9 @@ class FunctionAST {
 public:
   FunctionAST(std::unique_ptr<PrototypeAST> Proto,
               std::unique_ptr<ExprAST> Body)
-    : Proto(std::move(Proto)), Body(std::move(Body)) {}
+      : Proto(std::move(Proto)), Body(std::move(Body)) {}
+
+  llvm::Function *codegen();
 };
 
 #endif // AST_H
-
