@@ -8,7 +8,7 @@ std::string IdentifierStr; // Filled in if tok_identifier
 double NumVal;             // Filled in if tok_number
 
 int gettok() {
-  static int LastChar = ' ';
+  int LastChar = ' ';
 
   // Skip any whitespace.
   while (std::isspace(LastChar))

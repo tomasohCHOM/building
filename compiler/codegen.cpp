@@ -1,3 +1,4 @@
+#include "KaleidoscopeJIT.h"
 #include "helper.h"
 #include <llvm/ADT/APFloat.h>
 #include <llvm/IR/BasicBlock.h>
@@ -6,17 +7,29 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/PassManager.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Passes/StandardInstrumentations.h>
 #include <map>
 
 using namespace llvm;
+using namespace orc;
 
 std::unique_ptr<LLVMContext> TheContext;
 std::unique_ptr<IRBuilder<>> Builder;
 std::unique_ptr<Module> TheModule;
 std::map<std::string, Value *> NamedValues;
+std::unique_ptr<KaleidoscopeJIT> TheJIT;
+std::unique_ptr<FunctionPassManager> TheFPM;
+std::unique_ptr<LoopAnalysisManager> TheLAM;
+std::unique_ptr<FunctionAnalysisManager> TheFAM;
+std::unique_ptr<CGSCCAnalysisManager> TheCGAM;
+std::unique_ptr<ModuleAnalysisManager> TheMAM;
+std::unique_ptr<PassInstrumentationCallbacks> ThePIC;
+std::unique_ptr<StandardInstrumentations> TheSI;
 
 Value *LogErrorV(const char *Str) {
   LogError(Str);
@@ -122,6 +135,9 @@ Function *FunctionAST::codegen() {
 
     // Validate the generated code, checking for consistency.
     verifyFunction(*TheFunction);
+
+    // Optimize the function.
+    TheFPM->run(*TheFunction, *TheFAM);
 
     return TheFunction;
   }
