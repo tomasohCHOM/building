@@ -6,8 +6,16 @@ import (
 	"io"
 )
 
+type parseState string
+
+const (
+	StateInit parseState = "init"
+	StateDone parseState = "done"
+)
+
 type Request struct {
 	RequestLine RequestLine
+	state       parseState
 }
 
 type RequestLine struct {
@@ -47,14 +55,50 @@ func parseRequestLine(data []byte) (*RequestLine, int, error) {
 	}, i, nil
 }
 
+func (r *Request) parse(data []byte) (int, error) {
+	read := 0
+	switch r.state {
+	case StateInit:
+		rl, n, err := parseRequestLine(data[read:])
+		if err != nil {
+			return 0, err
+		}
+		if n == 0 {
+			break
+		}
+		r.RequestLine = *rl
+		read += n
+		r.state = StateDone
+	case StateDone:
+		break
+	}
+	return read, nil
+}
+
+func (r *Request) done() bool {
+	return r.state == StateDone
+}
+
 func RequestFromReader(reader io.Reader) (*Request, error) {
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, err
+	req := &Request{state: StateInit}
+	buf := make([]byte, 1024)
+	bufLen := 0
+	for !req.done() {
+		n, err := reader.Read(buf[bufLen:])
+		if err != nil {
+			if err == io.EOF {
+				req.state = StateDone
+				break
+			}
+			return nil, err
+		}
+		bufLen += n
+		readN, err := req.parse(buf[:bufLen])
+		if err != nil {
+			return nil, err
+		}
+		copy(buf, buf[readN:bufLen])
+		bufLen -= readN
 	}
-	rl, _, err := parseRequestLine(data)
-	if err != nil {
-		return nil, err
-	}
-	return &Request{RequestLine: *rl}, nil
+	return req, nil
 }
