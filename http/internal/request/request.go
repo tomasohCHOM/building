@@ -75,15 +75,17 @@ func (r *Request) parse(data []byte) (int, error) {
 	return read, nil
 }
 
-func (r *Request) done() bool {
-	return r.state == StateDone
-}
-
 func RequestFromReader(reader io.Reader) (*Request, error) {
 	req := &Request{state: StateInit}
-	buf := make([]byte, 1024)
+	buf := make([]byte, 8)
 	bufLen := 0
-	for !req.done() {
+	for req.state != StateDone {
+		if bufLen == len(buf) { // resize if needed
+			copyBuf := make([]byte, len(buf)*2)
+			copy(copyBuf, buf)
+			buf = copyBuf
+		}
+
 		n, err := reader.Read(buf[bufLen:])
 		if err != nil {
 			if err == io.EOF {
