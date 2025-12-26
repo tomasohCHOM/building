@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"strings"
 )
 
 type Request struct {
@@ -18,25 +17,34 @@ type RequestLine struct {
 }
 
 const CRLF = "\r\n"
-const HTTP_VERSION = "HTTP/1.1"
 
-func parseRequestLine(data string) (*RequestLine, error) {
-	parts := strings.Split(data, " ")
+var (
+	ErrMalformedRequestLine   = errors.New("malformed http request-line")
+	ErrUnsupportedHTTPVersion = errors.New("unsupported HTTP version")
+)
+
+func parseRequestLine(data []byte) (*RequestLine, int, error) {
+	i := bytes.Index(data, []byte(CRLF))
+	if i == -1 {
+		return nil, 0, nil
+	}
+	parts := bytes.Split(data[:i], []byte(" "))
 	if len(parts) != 3 {
-		return nil, errors.New("request line does not contain three elements")
+		return nil, 0, ErrMalformedRequestLine
 	}
 
-	rl := &RequestLine{
-		Method:        parts[0],
-		RequestTarget: parts[1],
-		HttpVersion:   parts[2],
+	httpVersionParts := bytes.Split(parts[2], []byte("/"))
+	if len(httpVersionParts) != 2 ||
+		string(httpVersionParts[0]) != "HTTP" ||
+		string(httpVersionParts[1]) != "1.1" {
+		return nil, 0, ErrUnsupportedHTTPVersion
 	}
 
-	if rl.HttpVersion != HTTP_VERSION {
-		return nil, errors.New("unsupported HTTP version")
-	}
-
-	return rl, nil
+	return &RequestLine{
+		Method:        string(parts[0]),
+		RequestTarget: string(parts[1]),
+		HttpVersion:   string(httpVersionParts[1]),
+	}, i, nil
 }
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
@@ -44,15 +52,9 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	i := bytes.Index(data, []byte(CRLF))
-	if i == -1 {
-		return nil, errors.New("malformed http request-line")
-	}
-	rlStr := string(data[:i])
-	rl, err := parseRequestLine(rlStr)
+	rl, _, err := parseRequestLine(data)
 	if err != nil {
 		return nil, err
 	}
 	return &Request{RequestLine: *rl}, nil
 }
-
