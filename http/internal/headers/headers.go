@@ -69,5 +69,25 @@ func parseHeader(fieldLine []byte) (string, string, error) {
 		return "", "", ErrMalformedFieldName
 	}
 
+	if !isValidToken(string(name)) {
+		return "", "", errors.New("invalid token for field name")
+	}
+
 	return string(name), string(value), nil
+}
+
+func isValidToken(token string) bool {
+	if token == "" {
+		return false
+	}
+
+	for _, ch := range token {
+		if !(ch >= 'a' && ch <= 'z' ||
+			ch >= 'A' && ch <= 'Z' ||
+			ch >= '0' && ch <= '9' ||
+			strings.ContainsRune("!#$%&'*+-.^_`|~", ch)) {
+			return false
+		}
+	}
+	return true
 }
