@@ -3,41 +3,38 @@ package headers
 import (
 	"bytes"
 	"errors"
+	"strings"
 )
 
-type Headers map[string]string
-
-func NewHeaders() Headers {
-	return map[string]string{}
-}
-
-var CRLF = []byte("\r\n")
+const CRLF = "\r\n"
 
 var (
 	ErrMalformedFieldLine = errors.New("malformed HTTP field-line")
 	ErrMalformedFieldName = errors.New("malformed HTTP field name")
 )
 
-func parseHeader(fieldLine []byte) (string, string, error) {
-	parts := bytes.SplitN(fieldLine, []byte(":"), 2)
-	if len(parts) != 2 {
-		return "", "", ErrMalformedFieldLine
-	}
-
-	name := parts[0]
-	value := bytes.TrimSpace(parts[1])
-
-	if bytes.HasPrefix(name, []byte(" ")) || bytes.HasSuffix(name, []byte(" ")) {
-		return "", "", ErrMalformedFieldName
-	}
-
-	return string(name), string(value), nil
+type Headers struct {
+	headers map[string]string
 }
 
-func (h Headers) Parse(data []byte) (int, bool, error) {
+func NewHeaders() *Headers {
+	return &Headers{
+		headers: map[string]string{},
+	}
+}
+
+func (h *Headers) Get(name string) string {
+	return h.headers[strings.ToLower(name)]
+}
+
+func (h *Headers) Set(name string, value string) {
+	h.headers[strings.ToLower(name)] = value
+}
+
+func (h *Headers) Parse(data []byte) (int, bool, error) {
 	n, done := 0, false
 	for {
-		idx := bytes.Index(data[n:], CRLF)
+		idx := bytes.Index(data[n:], []byte(CRLF))
 		if idx == -1 {
 			n = 0
 			break
@@ -53,8 +50,24 @@ func (h Headers) Parse(data []byte) (int, bool, error) {
 			return 0, false, err
 		}
 		n += idx + len(CRLF)
-		h[name] = value
+		h.Set(name, value)
 	}
 
 	return n, done, nil
+}
+
+func parseHeader(fieldLine []byte) (string, string, error) {
+	parts := bytes.SplitN(fieldLine, []byte(":"), 2)
+	if len(parts) != 2 {
+		return "", "", ErrMalformedFieldLine
+	}
+
+	name := parts[0]
+	value := bytes.TrimSpace(parts[1])
+
+	if bytes.HasPrefix(name, []byte(" ")) || bytes.HasSuffix(name, []byte(" ")) {
+		return "", "", ErrMalformedFieldName
+	}
+
+	return string(name), string(value), nil
 }
