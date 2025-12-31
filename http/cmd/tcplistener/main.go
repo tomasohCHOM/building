@@ -35,5 +35,8 @@ func main() {
 		req.Headers.ForEach(func(name, value string) {
 			fmt.Printf("- %s: %s\n", name, value)
 		})
+
+		fmt.Println("Body:")
+		fmt.Println(string(req.Body))
 	}
 }
