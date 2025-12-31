@@ -30,5 +30,10 @@ func main() {
 		fmt.Printf("- Method: %s\n", req.RequestLine.Method)
 		fmt.Printf("- Target: %s\n", req.RequestLine.RequestTarget)
 		fmt.Printf("- Version: %s\n", req.RequestLine.HttpVersion)
+
+		fmt.Println("Headers:")
+		req.Headers.ForEach(func(name, value string) {
+			fmt.Printf("- %s: %s\n", name, value)
+		})
 	}
 }

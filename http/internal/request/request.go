@@ -3,6 +3,7 @@ package request
 import (
 	"bytes"
 	"errors"
+	"http/internal/headers"
 	"io"
 )
 
@@ -15,6 +16,7 @@ var (
 
 type Request struct {
 	RequestLine RequestLine
+	Headers     *headers.Headers
 	state       parseState
 }
 
@@ -27,12 +29,13 @@ type RequestLine struct {
 type parseState string
 
 const (
-	StateInit parseState = "init"
-	StateDone parseState = "done"
+	StateInit    parseState = "init"
+	StateHeaders parseState = "headers"
+	StateDone    parseState = "done"
 )
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
-	req := &Request{state: StateInit}
+	req := &Request{state: StateInit, Headers: headers.NewHeaders()}
 	buf := make([]byte, 8)
 	bufLen := 0
 	for req.state != StateDone {
@@ -50,6 +53,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			}
 			return nil, err
 		}
+
 		bufLen += n
 		readN, err := req.parse(buf[:bufLen])
 		if err != nil {
@@ -74,7 +78,17 @@ func (r *Request) parse(data []byte) (int, error) {
 		}
 		r.RequestLine = *rl
 		read += n
-		r.state = StateDone
+		r.state = StateHeaders
+
+	case StateHeaders:
+		n, done, err := r.Headers.Parse(data[read:])
+		if err != nil {
+			return 0, err
+		}
+		read += n
+		if done {
+			r.state = StateDone
+		}
 	case StateDone:
 		break
 	}
@@ -102,5 +116,5 @@ func parseRequestLine(data []byte) (*RequestLine, int, error) {
 		Method:        string(parts[0]),
 		RequestTarget: string(parts[1]),
 		HttpVersion:   string(httpVersionParts[1]),
-	}, i, nil
+	}, i + len(CRLF), nil
 }

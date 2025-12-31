@@ -3,6 +3,7 @@ package headers
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -28,7 +29,18 @@ func (h *Headers) Get(name string) string {
 }
 
 func (h *Headers) Set(name string, value string) {
-	h.headers[strings.ToLower(name)] = value
+	name = strings.ToLower(name)
+	if prev := h.Get(name); prev != "" {
+		h.headers[name] = fmt.Sprintf("%s, %s", prev, value)
+		return
+	}
+	h.headers[name] = value
+}
+
+func (h *Headers) ForEach(cb func(n, v string)) {
+	for n, v := range h.headers {
+		cb(n, v)
+	}
 }
 
 func (h *Headers) Parse(data []byte) (int, bool, error) {
@@ -36,7 +48,6 @@ func (h *Headers) Parse(data []byte) (int, bool, error) {
 	for {
 		idx := bytes.Index(data[n:], []byte(CRLF))
 		if idx == -1 {
-			n = 0
 			break
 		}
 		if idx == 0 {
