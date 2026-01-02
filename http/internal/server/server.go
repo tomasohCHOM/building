@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"http/internal/response"
 	"net"
 	"sync/atomic"
 )
@@ -46,11 +47,7 @@ func (s *Server) listen() {
 
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
-	out := []byte(
-		"HTTP/1.1 200 OK\r\n" +
-			"Content-Type: text/plain\r\n" +
-			"\r\n" +
-			"Hello World!",
-	)
-	conn.Write(out)
+	headers := response.GetDefaultHeaders(0)
+	response.WriteStatusLine(conn, response.StatusOK)
+	response.WriteHeaders(conn, headers)
 }
