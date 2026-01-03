@@ -16,13 +16,11 @@ type Server struct {
 }
 
 func Serve(port int, handler Handler) (*Server, error) {
-	server := &Server{}
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, err
 	}
-	server.listener = listener
-	server.handler = handler
+	server := &Server{listener: listener, handler: handler}
 	go server.listen()
 	return server, nil
 }
@@ -53,7 +51,7 @@ func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
 	req, err := request.RequestFromReader(conn)
 	if err != nil {
-		handlerError := NewHandlerError(err.Error())
+		handlerError := NewHandlerError(response.StatusBadRequest, err.Error())
 		handlerError.Write(conn)
 		return
 	}

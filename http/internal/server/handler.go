@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"http/internal/request"
 	"http/internal/response"
 	"io"
@@ -12,7 +11,7 @@ type HandlerError struct {
 	Message    string
 }
 
-func NewHandlerError(message string) *HandlerError {
+func NewHandlerError(statusCode response.StatusCode, message string) *HandlerError {
 	return &HandlerError{
 		StatusCode: response.StatusBadRequest,
 		Message:    message,
@@ -20,7 +19,10 @@ func NewHandlerError(message string) *HandlerError {
 }
 
 func (handlerErr *HandlerError) Write(w io.Writer) {
-	w.Write([]byte(fmt.Sprintf("status %s: %s", handlerErr.StatusCode, handlerErr.Message)))
+	headers := response.GetDefaultHeaders(len(handlerErr.Message))
+	response.WriteStatusLine(w, handlerErr.StatusCode)
+	response.WriteHeaders(w, headers)
+	w.Write([]byte(handlerErr.Message))
 }
 
 type Handler func(w io.Writer, req *request.Request) *HandlerError

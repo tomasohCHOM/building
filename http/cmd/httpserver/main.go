@@ -14,18 +14,11 @@ import (
 const port = 42069
 
 func myProblemYourProblem(w io.Writer, r *request.Request) *server.HandlerError {
-	switch {
-	case r.RequestLine.RequestTarget == "/yourproblem":
-		return &server.HandlerError{
-			StatusCode: response.StatusBadRequest,
-			Message:    "Your problem is not my problem\n",
-		}
-	case r.RequestLine.RequestTarget == "/myproblem":
-		return &server.HandlerError{
-			StatusCode: response.StatusInternalServerEerror,
-			Message:    "Woopsie, my bad\n",
-		}
-
+	switch r.RequestLine.RequestTarget {
+	case "/yourproblem":
+		return server.NewHandlerError(response.StatusBadRequest, "Your problem is not my problem\n")
+	case "/myproblem":
+		return server.NewHandlerError(response.StatusInternalServerError, "Woopsie, my bad\n")
 	default:
 		responseBody := "All good, frfr\n"
 		w.Write([]byte(responseBody))
