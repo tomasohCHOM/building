@@ -26,3 +26,5 @@ func (handlerErr *HandlerError) Write(w io.Writer) {
 }
 
 type Handler func(w io.Writer, req *request.Request) *HandlerError
+
+type HandlerV2 func(w *response.Writer, req *request.Request)

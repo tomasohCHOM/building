@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"fmt"
 	"http/internal/request"
 	"http/internal/response"
@@ -11,11 +10,11 @@ import (
 
 type Server struct {
 	listener net.Listener
-	handler  Handler
+	handler  HandlerV2
 	closed   atomic.Bool
 }
 
-func Serve(port int, handler Handler) (*Server, error) {
+func Serve(port int, handler HandlerV2) (*Server, error) {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, err
@@ -55,15 +54,6 @@ func (s *Server) handle(conn net.Conn) {
 		handlerError.Write(conn)
 		return
 	}
-	buf := bytes.NewBuffer([]byte{})
-	handlerErr := s.handler(buf, req)
-	if handlerErr != nil {
-		handlerErr.Write(conn)
-		return
-	}
-	b := buf.Bytes()
-	response.WriteStatusLine(conn, response.StatusOK)
-	headers := response.GetDefaultHeaders(len(b))
-	response.WriteHeaders(conn, headers)
-	conn.Write(b)
+	respWriter := response.NewWriter(conn)
+	s.handler(respWriter, req)
 }
