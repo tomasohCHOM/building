@@ -7,6 +7,8 @@ import (
 	"strconv"
 )
 
+const CRLF = "\r\n"
+
 type StatusCode int
 
 const (
@@ -18,10 +20,11 @@ const (
 type writerState string
 
 const (
-	stateExpectStatusLine writerState = "expectStatusLine"
-	stateExpectHeaders    writerState = "expectHeaders"
-	stateExpectBody       writerState = "expectBody"
-	stateDone             writerState = "done"
+	stateExpectStatusLine  writerState = "expectStatusLine"
+	stateExpectHeaders     writerState = "expectHeaders"
+	stateExpectBody        writerState = "expectBody"
+	stateExpectChunkedBody writerState = "expectChunkedBody"
+	stateDone              writerState = "done"
 )
 
 type Writer struct {
@@ -54,6 +57,9 @@ func (w *Writer) WriteHeaders(headers *headers.Headers) error {
 		if val := headers.Get("content-length"); val == "" {
 			w.state = stateDone
 		}
+		if val := headers.Get("transfer-encoding"); val == "chunked" {
+			w.state = stateExpectChunkedBody
+		}
 	}
 	return err
 }
@@ -67,6 +73,37 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 		w.state = stateDone
 	}
 	return n, err
+}
+
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
+	if w.state != stateExpectChunkedBody {
+		return 0, fmt.Errorf("not currently expecting to write response chunked body")
+	}
+	out := fmt.Sprintf("%x", len(p)) + CRLF + string(p) + CRLF
+	return w.writer.Write([]byte(out))
+}
+
+func (w *Writer) WriteChunkedBodyDone() (int, error) {
+	if w.state != stateExpectChunkedBody {
+		return 0, fmt.Errorf("not currently expecting to write response chunked body")
+	}
+	return w.writer.Write([]byte("0" + CRLF + CRLF))
+}
+
+func (w *Writer) WriteTrailers(h *headers.Headers, t *headers.Headers) error {
+	if w.state != stateExpectChunkedBody {
+		return fmt.Errorf("not currently expecting to write trailers")
+	}
+	trailerVal := h.Get("Trailer")
+	if trailerVal == "" {
+		return fmt.Errorf("attempting to write trailers when Trailer header not present")
+	}
+	// TODO: we should verify that we are only writing trailers announced beforehand
+	_, err := w.writer.Write(headerBytes(t))
+	if err == nil {
+		w.state = stateDone
+	}
+	return err
 }
 
 func WriteStatusLine(w io.Writer, statusCode StatusCode) error {

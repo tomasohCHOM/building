@@ -1,19 +1,25 @@
 package main
 
 import (
+	"crypto/sha256"
+	"errors"
+	"fmt"
+	"http/internal/headers"
 	"http/internal/request"
 	"http/internal/response"
 	"http/internal/server"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
 const port = 42069
 
-func myProblemYourProblem(w io.Writer, r *request.Request) *server.HandlerError {
+func handler(w io.Writer, r *request.Request) *server.HandlerError {
 	switch r.RequestLine.RequestTarget {
 	case "/yourproblem":
 		return server.NewHandlerError(response.StatusBadRequest, "Your problem is not my problem\n")
@@ -26,7 +32,7 @@ func myProblemYourProblem(w io.Writer, r *request.Request) *server.HandlerError 
 	}
 }
 
-func myProblemYourProblemV2(w *response.Writer, req *request.Request) {
+func handlerV2(w *response.Writer, req *request.Request) {
 	switch req.RequestLine.RequestTarget {
 	case "/yourproblem":
 		w.WriteStatusLine(response.StatusBadRequest)
@@ -78,8 +84,48 @@ func myProblemYourProblemV2(w *response.Writer, req *request.Request) {
 	}
 }
 
+func proxyHandler(w *response.Writer, req *request.Request) {
+	if binTarget, ok := strings.CutPrefix(req.RequestLine.RequestTarget, "/httpbin/"); ok {
+		resp, err := http.Get("https://httpbin.org/" + binTarget)
+		if err != nil {
+			return
+		}
+		w.WriteStatusLine(response.StatusOK)
+		h := response.GetDefaultHeaders(0)
+		h.Remove("Content-Length")
+		h.Set("Transfer-Encoding", "chunked")
+		h.Set("Trailer", "X-Content-SHA256")
+		h.Set("Trailer", "X-Content-Length")
+		w.WriteHeaders(h)
+
+		fullBody := []byte{}
+		buf := make([]byte, 1024)
+		for {
+			n, err := resp.Body.Read(buf)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				fmt.Fprintf(os.Stderr, "error reading response Body: %s", err)
+				return
+			}
+			w.WriteChunkedBody(buf[:n])
+			fullBody = append(fullBody, buf[:n]...)
+		}
+
+		t := headers.NewHeaders()
+		t.Set("X-Content-SHA", fmt.Sprintf("%x", sha256.Sum256(fullBody)))
+		t.Set("X-Content-Length", fmt.Sprintf("%d", len(fullBody)))
+
+		err = w.WriteTrailers(h, t)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error writing trailers: %s", err)
+		}
+	}
+}
+
 func main() {
-	server, err := server.Serve(port, myProblemYourProblemV2)
+	server, err := server.Serve(port, proxyHandler)
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
