@@ -98,7 +98,10 @@ func (w *Writer) WriteTrailers(h *headers.Headers, t *headers.Headers) error {
 	if trailerVal == "" {
 		return fmt.Errorf("attempting to write trailers when Trailer header not present")
 	}
-	// TODO: we should verify that we are only writing trailers announced beforehand
+
+	// NOTE: this is not a correct implementation since it does not verify that
+	// we are only writing trailers announced beforehand in the Trailer header.
+	// However, I'm too lazy to fix and I did it mostly for the sake of learning :P
 	_, err := w.writer.Write(headerBytes(t))
 	if err == nil {
 		w.state = stateDone

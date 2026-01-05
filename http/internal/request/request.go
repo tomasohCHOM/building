@@ -12,6 +12,7 @@ const CRLF = "\r\n"
 
 var (
 	ErrMalformedRequestLine        = errors.New("malformed http request-line")
+	ErrMethodIsNotCapitalized      = errors.New("method is not capitalized")
 	ErrUnsupportedHTTPVersion      = errors.New("unsupported HTTP version")
 	ErrContentLengthDoesNotMatch   = errors.New("body length does not match content-length")
 	ErrUnexpectedEOFBeforeComplete = errors.New("unexpected EOF before complete request")
@@ -154,6 +155,10 @@ func parseRequestLine(data []byte) (*RequestLine, int, error) {
 	parts := bytes.Split(data[:i], []byte(" "))
 	if len(parts) != 3 {
 		return nil, 0, ErrMalformedRequestLine
+	}
+
+	if bytes.Equal(parts[0], bytes.ToUpper(parts[0])) {
+		return nil, 0, ErrMethodIsNotCapitalized
 	}
 
 	httpVersionParts := bytes.Split(parts[2], []byte("/"))
