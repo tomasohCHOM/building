@@ -45,9 +45,9 @@ func handlerV2(w *response.Writer, req *request.Request) {
 <p>Your request honestly kinda sucked.</p>
 </body>
 </html>`)
-		headers := response.GetDefaultHeaders(len(responseBody))
-		headers.Set("Content-Type", "text/html")
-		w.WriteHeaders(headers)
+		h := response.GetDefaultHeaders(len(responseBody))
+		h.Set("Content-Type", "text/html")
+		w.WriteHeaders(h)
 		w.WriteBody(responseBody)
 
 	case "/myproblem":
@@ -61,9 +61,9 @@ func handlerV2(w *response.Writer, req *request.Request) {
 <p>Okay, you know what? This one is on me.</p>
 </body>
 </html>`)
-		headers := response.GetDefaultHeaders(len(responseBody))
-		headers.Set("Content-Type", "text/html")
-		w.WriteHeaders(headers)
+		h := response.GetDefaultHeaders(len(responseBody))
+		h.Set("Content-Type", "text/html")
+		w.WriteHeaders(h)
 		w.WriteBody(responseBody)
 
 	default:
@@ -77,9 +77,9 @@ func handlerV2(w *response.Writer, req *request.Request) {
 <p>Your request was an absolute banger.</p>
 </body>
 </html>`)
-		headers := response.GetDefaultHeaders(len(responseBody))
-		headers.Set("Content-Type", "text/html")
-		w.WriteHeaders(headers)
+		h := response.GetDefaultHeaders(len(responseBody))
+		h.Set("Content-Type", "text/html")
+		w.WriteHeaders(h)
 		w.WriteBody(responseBody)
 	}
 }
@@ -124,8 +124,23 @@ func proxyHandler(w *response.Writer, req *request.Request) {
 	}
 }
 
+func videoHandler(w *response.Writer, req *request.Request) {
+	if req.RequestLine.RequestTarget == "/video" {
+		b, err := os.ReadFile("assets/vim.mp4")
+		if err != nil {
+			w.WriteStatusLine(response.StatusInternalServerError)
+			return
+		}
+		w.WriteStatusLine(response.StatusOK)
+		h := response.GetDefaultHeaders(len(b))
+		h.Replace("Content-Type", "video/mp4")
+		w.WriteHeaders(h)
+		w.WriteBody(b)
+	}
+}
+
 func main() {
-	server, err := server.Serve(port, proxyHandler)
+	server, err := server.Serve(port, videoHandler)
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
