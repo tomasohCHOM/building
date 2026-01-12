@@ -20,8 +20,6 @@ void InitializeModuleAndPassManager() {
   Builder = std::make_unique<IRBuilder<>>(*TheContext);
 
   // Create new pass and analysis managers.
-  TheFPM = std::make_unique<legacy::FunctionPassManager>(TheModule.get());
-
   TheFPM = std::make_unique<FunctionPassManager>();
   TheLAM = std::make_unique<LoopAnalysisManager>();
   TheFAM = std::make_unique<FunctionAnalysisManager>();
@@ -140,7 +138,7 @@ int main() {
   getNextToken();
 
   // Make the module, which holds all the code.
-  InitializeModuleAndManagers();
+  InitializeModuleAndPassManager();
 
   // Run the main "interpreter loop" now.
   MainLoop();
