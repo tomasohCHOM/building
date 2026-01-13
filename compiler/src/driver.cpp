@@ -1,6 +1,9 @@
+#include "KaleidoscopeJIT.h"
 #include "codegen.h"
 #include "parser.h"
 #include "token.h"
+#include <llvm-17/llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
+#include <llvm-c-17/llvm-c/Target.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
@@ -10,7 +13,7 @@
 
 using namespace llvm;
 
-void InitializeModuleAndPassManager() {
+void InitializeModuleAndManagers() {
   // Open a new context and module.
   TheContext = std::make_unique<LLVMContext>();
   TheModule = std::make_unique<Module>("my cool jit", *TheContext);
@@ -52,6 +55,9 @@ void HandleDefinition() {
       fprintf(stderr, "Read function definition:");
       FnIR->print(errs());
       fprintf(stderr, "\n");
+      ExitOnErr(TheJIT->addModule(
+          ThreadSafeModule(std::move(TheModule), std::move(TheContext))));
+      InitializeModuleAndManagers();
     }
   } else {
     // Skip token for error recovery.
@@ -65,6 +71,7 @@ void HandleExtern() {
       fprintf(stderr, "Read extern: ");
       FnIR->print(errs());
       fprintf(stderr, "\n");
+      FunctionProtos[ProtoAST->getName()] = std::move(ProtoAST);
     }
   } else {
     // Skip token for error recovery.
@@ -82,11 +89,10 @@ void HandleTopLevelExpression() {
 
       auto TSM = ThreadSafeModule(std::move(TheModule), std::move(TheContext));
       ExitOnErr(TheJIT->addModule(std::move(TSM), RT));
-      InitializeModuleAndPassManager();
+      InitializeModuleAndManagers();
 
       // Search the JIT for the __anon_expr symbol.
       auto ExprSymbol = ExitOnErr(TheJIT->lookup("__anon_expr"));
-      assert(ExprSymbol && "Function not found");
 
       // Get the symbol's address and cast it to the right type (takes no
       // arguments, returns a double) so we can call it as a native function.
@@ -126,6 +132,10 @@ void MainLoop() {
 }
 
 int main() {
+  LLVMInitializeNativeTarget();
+  LLVMInitializeNativeAsmPrinter();
+  LLVMInitializeNativeAsmParser();
+
   // Install standard binary operators.
   // 1 is lowest precedence.
   BinopPrecedence['<'] = 10;
@@ -137,8 +147,10 @@ int main() {
   fprintf(stderr, "ready> ");
   getNextToken();
 
+  TheJIT = ExitOnErr(KaleidoscopeJIT::Create());
+
   // Make the module, which holds all the code.
-  InitializeModuleAndPassManager();
+  InitializeModuleAndManagers();
 
   // Run the main "interpreter loop" now.
   MainLoop();

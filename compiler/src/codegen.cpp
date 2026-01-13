@@ -13,14 +13,15 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Passes/StandardInstrumentations.h>
+#include <llvm/Support/Error.h>
 #include <map>
 
 using namespace llvm;
 using namespace orc;
 
 std::unique_ptr<LLVMContext> TheContext;
-std::unique_ptr<IRBuilder<>> Builder;
 std::unique_ptr<Module> TheModule;
+std::unique_ptr<IRBuilder<>> Builder;
 std::map<std::string, Value *> NamedValues;
 std::unique_ptr<KaleidoscopeJIT> TheJIT;
 std::unique_ptr<FunctionPassManager> TheFPM;
@@ -30,9 +31,26 @@ std::unique_ptr<CGSCCAnalysisManager> TheCGAM;
 std::unique_ptr<ModuleAnalysisManager> TheMAM;
 std::unique_ptr<PassInstrumentationCallbacks> ThePIC;
 std::unique_ptr<StandardInstrumentations> TheSI;
+std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
+ExitOnError ExitOnErr;
 
 Value *LogErrorV(const char *Str) {
   LogError(Str);
+  return nullptr;
+}
+
+Function *getFunction(std::string Name) {
+  // First, see if the function has already been added to the current module.
+  if (auto *F = TheModule->getFunction(Name))
+    return F;
+
+  // If not, check whether we can codegen the declaration from some existing
+  // prototype.
+  auto FI = FunctionProtos.find(Name);
+  if (FI != FunctionProtos.end())
+    return FI->second->codegen();
+
+  // If no existing prototype exists, return null.
   return nullptr;
 }
 
@@ -108,17 +126,13 @@ Function *PrototypeAST::codegen() {
 }
 
 Function *FunctionAST::codegen() {
-  // First, check for an existing function from a previous 'extern' declaration.
-  Function *TheFunction = TheModule->getFunction(Proto->getName());
-
-  if (!TheFunction)
-    TheFunction = Proto->codegen();
-
+  // Transfer ownership of the prototype to the FunctionProtos map, but keep a
+  // reference to it for use below.
+  auto &P = *Proto;
+  FunctionProtos[Proto->getName()] = std::move(Proto);
+  Function *TheFunction = getFunction(P.getName());
   if (!TheFunction)
     return nullptr;
-
-  if (!TheFunction->empty())
-    return (Function *)LogErrorV("Function cannot be redefined");
 
   // Create a new basic block to start insertion into.
   BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", TheFunction);

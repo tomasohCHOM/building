@@ -8,16 +8,17 @@ std::string IdentifierStr; // Filled in if tok_identifier
 double NumVal;             // Filled in if tok_number
 
 int gettok() {
-  int LastChar = ' ';
+  static int LastChar = ' ';
 
   // Skip any whitespace.
-  while (std::isspace(LastChar))
+  while (isspace(LastChar))
     LastChar = getchar();
 
-  if (std::isalpha(LastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
+  if (isalpha(LastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
     IdentifierStr = LastChar;
-    while (std::isalnum((LastChar = std::getchar())))
+    while (isalnum((LastChar = getchar())))
       IdentifierStr += LastChar;
+
     if (IdentifierStr == "def")
       return tok_def;
     if (IdentifierStr == "extern")
@@ -25,29 +26,33 @@ int gettok() {
     return tok_identifier;
   }
 
-  if (std::isdigit(LastChar) || LastChar == '.') { // Number: [0-9.]+
+  if (isdigit(LastChar) || LastChar == '.') { // Number: [0-9.]+
     std::string NumStr;
     do {
       NumStr += LastChar;
       LastChar = getchar();
-    } while (std::isdigit(LastChar) || LastChar == '.');
-    NumVal = std::strtod(NumStr.c_str(), 0);
+    } while (isdigit(LastChar) || LastChar == '.');
+
+    NumVal = strtod(NumStr.c_str(), nullptr);
     return tok_number;
   }
+
   if (LastChar == '#') {
     // Comment until end of line
     do
-      LastChar = std::getchar();
+      LastChar = getchar();
     while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
     if (LastChar != EOF)
       return gettok();
   }
 
+  // Check for end of file.  Don't eat the EOF.
   if (LastChar == EOF)
     return tok_eof;
 
+  // Otherwise, just return the character as its ascii value.
   int ThisChar = LastChar;
-  LastChar = std::getchar();
+  LastChar = getchar();
   return ThisChar;
 }
