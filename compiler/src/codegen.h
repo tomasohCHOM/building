@@ -1,7 +1,7 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
-#include "KaleidoscopeJIT.h"
+#include "../include/KaleidoscopeJIT.h"
 #include "ast.h"
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/PassManager.h>

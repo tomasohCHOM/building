@@ -1,9 +1,9 @@
-#include "KaleidoscopeJIT.h"
+#include "../include/KaleidoscopeJIT.h"
 #include "codegen.h"
 #include "parser.h"
 #include "token.h"
-#include <llvm-17/llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
-#include <llvm-c-17/llvm-c/Target.h>
+#include <llvm-c/Target.h>
+#include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
