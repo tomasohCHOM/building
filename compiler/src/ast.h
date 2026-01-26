@@ -7,12 +7,14 @@
 #include <string>
 #include <vector>
 
+using namespace llvm;
+
 /// ExprAST - Base class for all expression nodes
 class ExprAST {
 public:
   virtual ~ExprAST() = default;
 
-  virtual llvm::Value *codegen() = 0;
+  virtual Value *codegen() = 0;
 };
 
 /// NumberExprAST - Expression class for numeric literal like "1.0"
@@ -22,7 +24,7 @@ class NumberExprAST : public ExprAST {
 public:
   NumberExprAST(double Val) : Val(Val) {}
 
-  llvm::Value *codegen() override;
+  Value *codegen() override;
 };
 
 /// VariableExprAST - Expression class for referencing a variable, like "a"
@@ -32,7 +34,8 @@ class VariableExprAST : public ExprAST {
 public:
   VariableExprAST(const std::string &Name) : Name(Name) {}
 
-  llvm::Value *codegen() override;
+  Value *codegen() override;
+  const std::string &getName() const { return Name; }
 };
 
 /// UnaryExprAST - Expression class for a unary operator.
@@ -44,7 +47,7 @@ public:
   UnaryExprAST(char Opcode, std::unique_ptr<ExprAST> Operand)
       : Opcode(Opcode), Operand(std::move(Operand)) {}
 
-  llvm::Value *codegen() override;
+  Value *codegen() override;
 };
 
 /// BinaryExprAST - Expression class for a binary operator
@@ -57,7 +60,7 @@ public:
                 std::unique_ptr<ExprAST> RHS)
       : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
 
-  llvm::Value *codegen() override;
+  Value *codegen() override;
 };
 
 /// CallExprAST - Expression class for function calls
@@ -70,7 +73,7 @@ public:
               std::vector<std::unique_ptr<ExprAST>> Args)
       : Callee(Callee), Args(std::move(Args)) {}
 
-  llvm::Value *codegen() override;
+  Value *codegen() override;
 };
 
 /// IfExprAST - Expression class for if/then/else.
@@ -82,7 +85,7 @@ public:
             std::unique_ptr<ExprAST> Else)
       : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
 
-  llvm::Value *codegen() override;
+  Value *codegen() override;
 };
 
 /// ForExprAST - Expression class for for/in.
@@ -97,7 +100,21 @@ public:
       : VarName(VarName), Start(std::move(Start)), End(std::move(End)),
         Step(std::move(Step)), Body(std::move(Body)) {}
 
-  llvm::Value *codegen() override;
+  Value *codegen() override;
+};
+
+/// VarExprAST - Expression class for var/in
+class VarExprAST : public ExprAST {
+  std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
+  std::unique_ptr<ExprAST> Body;
+
+public:
+  VarExprAST(
+      std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames,
+      std::unique_ptr<ExprAST> Body)
+      : VarNames(std::move(VarNames)), Body(std::move(Body)) {}
+
+  Value *codegen() override;
 };
 
 /// PrototypeAST - This class represents the "prototype" for a function,
