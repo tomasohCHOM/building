@@ -14,7 +14,8 @@ unsigned int capacity(vector *vec) { return vec->capacity; }
 
 unsigned int empty(vector *vec) { return size(vec) == 0; }
 
-vector *init_vector(vector *vec, uint32_t capacity) {
+vector *init_vector(uint32_t capacity) {
+  vector *vec;
   vec->data = malloc(capacity * sizeof(int));
   if (!vec->data) {
     return NULL;
