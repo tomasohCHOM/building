@@ -12,5 +12,6 @@ int main() {
 
   printf("size after adding elements: %d\n", size(vec));
   printf("%d\n", get(vec, 2));
+  free_vec(vec);
   return 0;
 }

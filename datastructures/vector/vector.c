@@ -44,6 +44,13 @@ int pop(vector *vec) {
   return elem;
 }
 
+void free_vec(vector *vec) {
+  if (vec->data != NULL) {
+    free(vec->data);
+    vec->data = NULL;
+  }
+}
+
 int get(vector *vec, uint32_t index) {
   if (index >= vec->size) {
     return -1;
