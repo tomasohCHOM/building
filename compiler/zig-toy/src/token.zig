@@ -21,6 +21,8 @@ pub const TokenKind = enum {
     l_brace,
     r_brace,
 
+    arrow,
+
     plus,
     minus,
     star,
@@ -44,4 +46,6 @@ pub const TokenKind = enum {
 pub const Token = struct {
     kind: TokenKind,
     lexeme: []const u8,
+    line: usize,
+    column: usize,
 };
