@@ -1,12 +1,17 @@
 const std = @import("std");
-const Io = std.Io;
+const Lexer = @import("lexer.zig").Lexer;
 
-pub fn main(init: std.process.Init) !void {
-    const arena: std.mem.Allocator = init.arena.allocator();
-    const args = try init.minimal.args.toSlice(arena);
-    for (args) |arg| {
-        std.log.info("arg: {s}", .{arg});
+pub fn main() !void {
+    const source =
+        \\let x: int = 10;
+        \\fn add(a: int, b: int) -> int {
+        \\    return a + b;
+        \\}
+    ;
+    var lexer = Lexer.init(source);
+    while (true) {
+        const tok = lexer.nextToken();
+        std.debug.print("{any} \"{s}\"\n", .{ tok.kind, tok.lexeme });
+        if (tok.kind == .eof) break;
     }
-
-    std.debug.print("Hello, World!", .{});
 }
