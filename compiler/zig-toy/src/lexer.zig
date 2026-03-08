@@ -183,3 +183,37 @@ fn tokenKind(text: []const u8) TokenKind {
 
     return .identifier;
 }
+
+const expect = std.testing.expect;
+test "Lexer" {
+    const Helper = struct {
+        fn verifyTokenWithKind(
+            curr_token: Token,
+            expected_token: []const u8,
+            expected_kind: TokenKind,
+        ) bool {
+            return std.mem.eql(u8, curr_token.lexeme, expected_token) and
+                curr_token.kind == expected_kind;
+        }
+    };
+
+    const source = "let x: int = 0;";
+    const expected_tokens = [_]struct { []const u8, TokenKind }{
+        .{ "let", .keyword_let },
+        .{ "x", .identifier },
+        .{ ":", .colon },
+        .{ "int", .keyword_int },
+        .{ "=", .equal },
+        .{ "0", .int_literal },
+        .{ ";", .semicolon },
+    };
+
+    var lexer = Lexer.init(source);
+    var curr_token: Token = undefined;
+
+    for (expected_tokens) |expected_token| {
+        curr_token = lexer.nextToken();
+        const lexeme, const token_kind = expected_token;
+        try expect(Helper.verifyTokenWithKind(curr_token, lexeme, token_kind));
+    }
+}
