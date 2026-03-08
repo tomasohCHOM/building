@@ -66,6 +66,9 @@ pub const Lexer = struct {
             switch (c) {
                 ' ', '\t', '\r', '\n' => continue,
 
+                ':' => return self.makeToken(.colon, start, line, column),
+                ';' => return self.makeToken(.semicolon, start, line, column),
+
                 '(' => return self.makeToken(.l_paren, start, line, column),
                 ')' => return self.makeToken(.r_paren, start, line, column),
                 '{' => return self.makeToken(.l_brace, start, line, column),
@@ -174,6 +177,7 @@ fn tokenKind(text: []const u8) TokenKind {
     if (std.mem.eql(u8, text, "return")) return .keyword_return;
     if (std.mem.eql(u8, text, "if")) return .keyword_if;
     if (std.mem.eql(u8, text, "else")) return .keyword_else;
+    if (std.mem.eql(u8, text, "int")) return .keyword_int;
     if (std.mem.eql(u8, text, "true")) return .keyword_true;
     if (std.mem.eql(u8, text, "false")) return .keyword_false;
 
