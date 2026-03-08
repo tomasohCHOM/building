@@ -40,6 +40,7 @@ pub const TokenKind = enum {
     and_and,
     or_or,
 
+    err,
     eof,
 };
 

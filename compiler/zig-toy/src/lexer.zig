@@ -104,12 +104,34 @@ pub const Lexer = struct {
                 },
 
                 else => {
-                    if (std.ascii.isAlphabetic(c) or c == '_') {
-                        return self.identifier(start, line, column);
-                    }
-                    if (std.ascii.isDigit(c)) {
+                    if (std.ascii.isDigit(c))
                         return self.number(start, line, column);
+
+                    if (std.ascii.isAlphabetic(c) or c == '_') {
+                        while (true) {
+                            const next_c = self.peek() orelse break;
+                            if (!std.ascii.isAlphanumeric(next_c) and next_c != '_')
+                                break;
+                            _ = self.advance();
+                        }
+
+                        const text = self.source[start..self.pos];
+                        const kind = tokenKind(text);
+
+                        return .{
+                            .kind = kind,
+                            .lexeme = text,
+                            .line = line,
+                            .column = column,
+                        };
                     }
+
+                    return .{
+                        .kind = .err,
+                        .lexeme = self.source[start..self.pos],
+                        .line = line,
+                        .column = column,
+                    };
                 },
             }
         }
@@ -125,24 +147,6 @@ pub const Lexer = struct {
         return .{
             .kind = kind,
             .lexeme = self.source[start..self.pos],
-            .line = line,
-            .column = column,
-        };
-    }
-
-    fn identifier(self: Self, start: usize, line: usize, column: usize) Token {
-        while (true) {
-            const c = self.peek() orelse break;
-            if (!std.ascii.isAlphanumeric(c) and c != '_') break;
-            _ = self.advance();
-        }
-
-        const text = self.source[start..self.pos];
-        const kind = tokenKind(text);
-
-        return .{
-            .kind = kind,
-            .lexeme = text,
             .line = line,
             .column = column,
         };
