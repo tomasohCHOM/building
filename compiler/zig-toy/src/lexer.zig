@@ -21,12 +21,12 @@ pub const Lexer = struct {
         };
     }
 
-    fn peek(self: Self) ?u8 {
+    fn peek(self: *const Self) ?u8 {
         if (self.pos >= self.source.len) return null;
         return self.source[self.pos];
     }
 
-    fn advance(self: Self) ?u8 {
+    fn advance(self: *Self) ?u8 {
         if (self.pos >= self.source.len) return null;
 
         const c = self.source[self.pos];
@@ -42,13 +42,13 @@ pub const Lexer = struct {
         return c;
     }
 
-    fn match(self: Self, expected: u8) bool {
+    fn match(self: *Self, expected: u8) bool {
         if (self.peek() != expected) return false;
         _ = self.advance();
         return true;
     }
 
-    pub fn nextToken(self: Self) Token {
+    pub fn nextToken(self: *Self) Token {
         while (true) {
             const start = self.pos;
             const line = self.line;
@@ -152,7 +152,7 @@ pub const Lexer = struct {
         };
     }
 
-    fn number(self: *Lexer, start: usize, line: usize, column: usize) Token {
+    fn number(self: *Self, start: usize, line: usize, column: usize) Token {
         while (true) {
             const d = self.peek() orelse break;
             if (!std.ascii.isDigit(d)) break;
